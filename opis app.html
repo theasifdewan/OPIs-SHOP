@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop Billing</title>
+<style>
+  :root{--bg:#f3f5f8;--card:#fff;--ink:#1c2430;--mute:#6b7685;--line:#dfe4ea;--brand:#0f6e5a;--brand2:#0b5646;--danger:#c0392b}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+  header{background:var(--brand);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;flex:1}
+  button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;color:var(--ink)}
+  button:hover{background:#eef2f5}
+  button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  button.primary:hover{background:var(--brand2)}
+  button.danger{color:var(--danger)}
+  header button{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35)}
+  header button:hover{background:rgba(255,255,255,.28)}
+  main{max-width:1150px;margin:16px auto;padding:0 14px;display:grid;grid-template-columns:1fr 1.5fr;gap:16px}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h2{font-size:14px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+  label{display:block;font-size:12px;color:var(--mute);margin:10px 0 4px}
+  input,textarea,select{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  input:focus,textarea:focus{outline:2px solid #9ad3c4;border-color:var(--brand)}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  #results{border:1px solid var(--line);border-radius:8px;margin-top:6px;max-height:230px;overflow:auto;display:none}
+  #results div{padding:9px 11px;cursor:pointer;border-bottom:1px solid var(--line)}
+  #results div:last-child{border:0}
+  #results div:hover,#results div.hl{background:#e6f4f0}
+  #results small{color:var(--mute)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:999px;cursor:pointer}
+  .chip small{color:var(--mute);margin-left:4px}
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .chip.on small{color:#cdeee6}
+  .picked{margin-top:12px;font-weight:600}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:12px;text-align:left;color:var(--mute);padding:6px;border-bottom:2px solid var(--line)}
+  td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td input{padding:6px 8px;text-align:right}
+  .r{text-align:right}
+  .empty{color:var(--mute);text-align:center;padding:26px 0}
+  .totals{margin-top:14px;margin-left:auto;max-width:330px}
+  .totals .t{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+  .totals input{width:120px;text-align:right}
+  .totals .grand{font-size:18px;font-weight:700;border-top:2px solid var(--ink);margin-top:4px;padding-top:9px}
+  .words{color:var(--mute);font-size:13px;margin-top:6px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:10}
+  .modal.open{display:flex}
+  .modal .box{background:#fff;border-radius:12px;padding:18px;width:100%;max-width:760px}
+  .modal h3{margin:0 0 12px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1c2430;color:#fff;padding:9px 16px;border-radius:8px;display:none;z-index:20}
+  .plist .it{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .plist .it .n{flex:1}.plist small{color:var(--mute);display:block}
+  /* ---------- print ---------- */
+  #print{display:none}
+  @media print{
+    body{background:#fff}
+    body>*:not(#print){display:none!important}
+    #print{display:block;color:#000;font-size:13px;padding:6mm}
+    @page{margin:8mm}
+  }
+  #print .top{display:flex;justify-content:space-between;gap:20px}
+  #print h1{margin:0;font-size:22px}
+  #print h2{text-align:center;margin:14px 0;font-size:18px;letter-spacing:.1em}
+  #print table{margin-top:10px}
+  #print th,#print td{border:1px solid #444;padding:5px 7px;color:#000}
+  #print td.r,#print th.r{text-align:right}
+  #print .tot{margin-left:auto;width:55%;margin-top:6px}
+  #print .tot div{display:flex;justify-content:space-between;padding:3px 0}
+  #print .tot .g{font-weight:700;border-top:1px solid #000}
+  #print .foot{margin-top:18px;border-top:1px dashed #666;padding-top:8px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="hdrName">Shop Billing</h1>
+  <button onclick="openModal('mProducts')">Products</button>
+  <button onclick="openHistory()">Saved Bills</button>
+  <button onclick="openModal('mSettings')">Shop Settings</button>
+</header>
+
+<main>
+  <!-- LEFT: add item -->
+  <section class="card">
+    <h2>Add item</h2>
+    <label>Search product</label>
+    <input id="q" placeholder="Type e.g. socket, bush, tape..." autocomplete="off">
+    <div id="results"></div>
+
+    <div id="picker" style="display:none">
+      <div class="picked" id="pickedName"></div>
+      <label>Choose size</label>
+      <div class="chips" id="chips"></div>
+      <div class="row">
+        <div><label>Quantity</label><input id="qty" type="number" min="0" step="any" value="1"></div>
+        <div><label>Unit price (BDT)</label><input id="price" type="number" min="0" step="any"></div>
+      </div>
+      <div class="actions"><button class="primary" id="addBtn">Add to bill</button></div>
+    </div>
+
+    <details style="margin-top:18px">
+      <summary style="cursor:pointer;color:var(--mute)">Item not in list? Add custom item</summary>
+      <label>Description</label><input id="cName">
+      <div class="row">
+        <div><label>Quantity</label><input id="cQty" type="number" min="0" step="any" value="1"></div>
+        <div><label>Unit price</label><input id="cPrice" type="number" min="0" step="any"></div>
+      </div>
+      <div class="actions"><button id="cAdd">Add custom item</button></div>
+    </details>
+  </section>
+
+  <!-- RIGHT: bill -->
+  <section class="card">
+    <h2>Bill <span id="invLabel" style="float:right;text-transform:none"></span></h2>
+    <div class="row">
+      <div><label>Customer name</label><input id="cust" placeholder="Walk-in customer"></div>
+      <div><label>Phone</label><input id="phone"></div>
+    </div>
+    <label>Address</label><input id="addr">
+
+    <table style="margin-top:14px">
+      <thead><tr><th>#</th><th>Description</th><th class="r" style="width:80px">Qty</th><th class="r" style="width:100px">Unit price</th><th class="r" style="width:100px">Subtotal</th><th style="width:30px"></th></tr></thead>
+      <tbody id="items"></tbody>
+    </table>
+
+    <div class="totals">
+      <div class="t"><span>Total</span><b id="sub">0.00</b></div>
+      <div class="t"><span>Discount</span><input id="disc" type="number" min="0" step="any" value="0"></div>
+      <div class="t grand"><span>Net total (BDT)</span><span id="grand">0.00</span></div>
+      <div class="t"><span>Paid</span><input id="paid" type="number" min="0" step="any" value="0"></div>
+      <div class="t"><span>Due</span><b id="due">0.00</b></div>
+    </div>
+    <div class="words" id="words"></div>
+
+    <div class="actions">
+      <button class="primary" id="printBtn">Save &amp; Print</button>
+      <button id="saveBtn">Save only</button>
+      <button id="newBtn" class="danger">New bill</button>
+    </div>
+  </section>
+</main>
+
+<!-- Products modal -->
+<div class="modal" id="mProducts"><div class="box">
+  <h3>Products</h3>
+  <div class="row" style="align-items:flex-end">
+    <div style="flex:2"><label>Search in list</label><input id="pSearch" placeholder="filter..."></div>
+    <button class="primary" onclick="editProduct(null)" style="flex:0 0 auto">+ New product</button>
+  </div>
+  <div class="plist" id="plist" style="margin-top:10px"></div>
+  <div class="actions">
+    <button onclick="exportData()">Export backup (JSON)</button>
+    <button onclick="document.getElementById('importFile').click()">Import backup</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+    <button class="danger" onclick="resetDemo()">Reset to demo products</button>
+    <button onclick="closeModal('mProducts')" style="margin-left:auto">Close</button>
+  </div>
+</div></div>
+
+<!-- Edit product modal -->
+<div class="modal" id="mEdit"><div class="box" style="max-width:520px">
+  <h3 id="editTitle">Product</h3>
+  <label>Product name</label><input id="eName" placeholder="GI Socket">
+  <label>Sizes and prices &mdash; one per line: <code>size, price</code></label>
+  <textarea id="eVars" rows="8" placeholder='1/2", 40&#10;3/4", 55&#10;1", 80'></textarea>
+  <div class="actions">
+    <button class="primary" id="eSave">Save product</button>
+    <button onclick="closeModal('mEdit')">Cancel</button>
+  </div>
+</div></div>
+
+<!-- History modal -->
+<div class="modal" id="mHistory"><div class="box">
+  <h3>Saved bills</h3>
+  <input id="hSearch" placeholder="Search by invoice no / customer / phone">
+  <div class="plist" id="hlist" style="margin-top:10px"></div>
+  <div class="actions"><button onclick="closeModal('mHistory')" style="margin-left:auto">Close</button></div>
+</div></div>
+
+<!-- Settings modal -->
+<div class="modal" id="mSettings"><div class="box" style="max-width:520px">
+  <h3>Shop settings (shown on printed bill)</h3>
+  <label>Shop name</label><input id="sName">
+  <label>Tagline</label><input id="sTag">
+  <label>Address</label><input id="sAddr">
+  <label>Phone</label><input id="sPhone">
+  <label>Footer note</label><textarea id="sFoot" rows="3"></textarea>
+  <label>Next invoice number</label><input id="sNext" type="number" min="1">
+  <div class="actions">
+    <button class="primary" id="sSave">Save settings</button>
+    <button onclick="closeModal('mSettings')">Cancel</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<div id="print"></div>
+
+<script>
+/* ================= data ================= */
+const K = {products:'sb_products', settings:'sb_settings', bills:'sb_bills'};
+const DEMO_PRODUCTS = [
+  {name:'GI Bong Plate', variants:[{size:'3"x1"',price:260},{size:'4"x1.5"',price:340},{size:'4"x2"',price:390}]},
+  {name:'A1 GI Socket', variants:[{size:'1/2"',price:30},{size:'3/4"',price:45},{size:'1"',price:65},{size:'1.5"',price:95},{size:'2"',price:140}]},
+  {name:'GI Bush', variants:[{size:'1/2"x1/4"',price:35},{size:'3/4"x1/2"',price:50},{size:'1"x3/4"',price:70},{size:'1.5"x2"',price:95}]},
+  {name:'Akij Gum', variants:[{size:'50ml',price:60},{size:'100ml',price:100},{size:'200ml',price:176}]},
+  {name:'Gazi Thread Tape', variants:[{size:'Standard',price:17}]},
+  {name:'PVC Pipe', variants:[{size:'1/2"',price:60},{size:'3/4"',price:85},{size:'1"',price:120},{size:'1.5"',price:190}]},
+  {name:'Water Tap (Brass)', variants:[{size:'1/2"',price:180},{size:'3/4"',price:260}]},
+  {name:'Wall Mixer', variants:[{size:'Standard',price:1450},{size:'Premium',price:2600}]},
+  {name:'Elbow 90° (PVC)', variants:[{size:'1/2"',price:25},{size:'3/4"',price:35},{size:'1"',price:55}]},
+  {name:'Teflon Gasket', variants:[{size:'1/2"',price:10},{size:'3/4"',price:15}]}
+];
+const DEF_SETTINGS = {name:'Robana Electric & Sanitary', tag:'Electric & Sanitary', addr:'Dhamrai Bazar, Dhamrai, Dhaka', phone:'01819149176',
+  foot:'ধন্যবাদ আবার আসবেন', next:1001};
+
+function load(k, def){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? def; }catch(e){ return def; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ toast('Could not save (browser storage blocked)'); } }
+
+let products = load(K.products, null);
+if(!products){ products = DEMO_PRODUCTS.map(p=>({id:uid(), ...p})); save(K.products, products); }
+let settings = {...DEF_SETTINGS, ...load(K.settings, {})};
+let bills = load(K.bills, []);
+
+let bill = newBill();
+let cur = {product:null, variant:null};
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function newBill(){ return {invoice: settings.next, items:[], cust:'', phone:'', addr:'', disc:0, paid:0, date:null}; }
+
+/* ================= helpers ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => (Number(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num = v => { const n = parseFloat(v); return isNaN(n)?0:n; };
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2200); }
+function openModal(id){ $(id).classList.add('open'); if(id==='mProducts') renderPlist(); if(id==='mSettings') fillSettings(); }
+function closeModal(id){ $(id).classList.remove('open'); }
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('mousedown',e=>{ if(e.target===m) m.classList.remove('open'); }));
+
+function words(n){
+  n = Math.round(n);
+  if(n===0) return 'Zero';
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const two = x => x<20 ? a[x] : b[Math.floor(x/10)] + (x%10?' '+a[x%10]:'');
+  const three = x => (x>=100 ? a[Math.floor(x/100)]+' hundred'+(x%100?' ':''):'') + (x%100?two(x%100):'');
+  const parts=[]; 
+  const crore=Math.floor(n/1e7); n%=1e7;
+  const lakh=Math.floor(n/1e5); n%=1e5;
+  const th=Math.floor(n/1e3); n%=1e3;
+  if(crore) parts.push(three(crore)+' crore');
+  if(lakh) parts.push(two(lakh)+' lakh');
+  if(th) parts.push(two(th)+' thousand');
+  if(n) parts.push(three(n));
+  const s = parts.join(' ').toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/* ================= search & pick ================= */
+let hlIdx = -1, shown = [];
+$('q').addEventListener('input', renderResults);
+$('q').addEventListener('focus', renderResults);
+$('q').addEventListener('keydown', e=>{
+  if(e.key==='ArrowDown'){ hlIdx=Math.min(hlIdx+1,shown.length-1); paintHl(); e.preventDefault(); }
+  else if(e.key==='ArrowUp'){ hlIdx=Math.max(hlIdx-1,0); paintHl(); e.preventDefault(); }
+  else if(e.key==='Enter'){ if(shown.length) pickProduct(shown[Math.max(hlIdx,0)]); }
+  else if(e.key==='Escape'){ $('results').style.display='none'; }
+});
+document.addEventListener('click', e=>{ if(!e.target.closest('#q,#results')) $('results').style.display='none'; });
+
+function renderResults(){
+  const t = $('q').value.trim().toLowerCase();
+  const box = $('results');
+  shown = products.filter(p=>{
+    if(!t) return true;
+    return t.split(/\s+/).every(w => (p.name+' '+p.variants.map(v=>v.size).join(' ')).toLowerCase().includes(w));
+  }).slice(0,12);
+  hlIdx = shown.length?0:-1;
+  if(!shown.length){ box.innerHTML='<div style="cursor:default;color:#6b7685">No product found &mdash; use "custom item" below or add it in Products.</div>'; box.style.display='block'; return; }
+  box.innerHTML = shown.map((p,i)=>`<div data-i="${i}">${esc(p.name)} <small>${p.variants.length} size${p.variants.length>1?'s':''}</small></div>`).join('');
+  box.style.display='block'; paintHl();
+  box.querySelectorAll('div[data-i]').forEach(d=>d.onclick=()=>pickProduct(shown[+d.dataset.i]));
+}
+function paintHl(){ [...$('results').children].forEach((d,i)=>d.classList.toggle('hl',i===hlIdx)); }
+
+function pickProduct(p){
+  cur.product = p; cur.variant = null;
+  $('results').style.display='none'; $('q').value = p.name;
+  $('pickedName').textContent = p.name;
+  $('chips').innerHTML = p.variants.map((v,i)=>`<span class="chip" data-i="${i}">${esc(v.size)}<small>${money(v.price)}</small></span>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>pickVariant(+c.dataset.i));
+  $('picker').style.display='block';
+  $('price').value=''; $('qty').value=1;
+  if(p.variants.length===1) pickVariant(0); else $('chips').firstElementChild?.scrollIntoView({block:'nearest'});
+}
+function pickVariant(i){
+  cur.variant = cur.product.variants[i];
+  [...$('chips').children].forEach((c,j)=>c.classList.toggle('on',i===j));
+  $('price').value = cur.variant.price;
+  $('qty').focus(); $('qty').select();
+}
+function addPicked(){
+  if(!cur.product) return;
+  if(!cur.variant){ toast('Please choose a size'); return; }
+  const q = num($('qty').value), pr = num($('price').value);
+  if(q<=0){ toast('Enter quantity'); return; }
+  const name = cur.product.name + (cur.variant.size && cur.variant.size!=='Standard' ? ' - '+cur.variant.size : '');
+  addItem(name, q, pr);
+  cur = {product:null, variant:null};
+  $('picker').style.display='none'; $('q').value=''; $('q').focus();
+}
+$('addBtn').onclick = addPicked;
+['qty','price'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') addPicked(); }));
+$('cAdd').onclick = ()=>{
+  const n=$('cName').value.trim(); if(!n){ toast('Enter description'); return; }
+  const q=num($('cQty').value); if(q<=0){ toast('Enter quantity'); return; }
+  addItem(n,q,num($('cPrice').value)); $('cName').value=''; $('cQty').value=1; $('cPrice').value='';
+};
+
+function addItem(name, qty, price){
+  // merge same item + same price
+  const ex = bill.items.find(i=>i.name===name && i.price===price);
+  if(ex) ex.qty += qty; else bill.items.push({name, qty, price});
+  render();
+}
+
+/* ================= bill render ================= */
+function render(){
+  $('invLabel').textContent = 'Invoice #' + bill.invoice;
+  const tb = $('items');
+  if(!bill.items.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No items yet &mdash; search a product on the left.</td></tr>'; }
+  else tb.innerHTML = bill.items.map((it,i)=>`<tr>
+    <td>${i+1}</td><td>${esc(it.name)}</td>
+    <td><input type="number" min="0" step="any" value="${it.qty}" data-f="qty" data-i="${i}"></td>
+    <td><input type="number" min="0" step="any" value="${it.price}" data-f="price" data-i="${i}"></td>
+    <td class="r">${money(it.qty*it.price)}</td>
+    <td><button class="danger" style="padding:2px 8px" data-del="${i}" title="Remove">&times;</button></td></tr>`).join('');
+  tb.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{ bill.items[+inp.dataset.i][inp.dataset.f]=num(inp.value); render(); }));
+  tb.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ bill.items.splice(+b.dataset.del,1); render(); });
+  totals();
+}
+function calc(){
+  const sub = bill.items.reduce((s,i)=>s+i.qty*i.price,0);
+  const grand = Math.max(0, sub - bill.disc);
+  return {sub, grand, due: grand - bill.paid};
+}
+function totals(){
+  const c = calc();
+  $('sub').textContent = money(c.sub); $('grand').textContent = money(c.grand); $('due').textContent = money(c.due);
+  $('words').textContent = c.grand>0 ? 'In words: '+words(c.grand)+' taka only' : '';
+}
+['cust','phone','addr'].forEach(id=>$(id).addEventListener('input',()=>bill[{cust:'cust',phone:'phone',addr:'addr'}[id]]=$(id).value));
+$('disc').addEventListener('input',()=>{ bill.disc=num($('disc').value); totals(); });
+$('paid').addEventListener('input',()=>{ bill.paid=num($('paid').value); totals(); });
+
+function syncForm(){
+  $('cust').value=bill.cust; $('phone').value=bill.phone; $('addr').value=bill.addr;
+  $('disc').value=bill.disc; $('paid').value=bill.paid; render();
+}
+
+/* ================= save / print / history ================= */
+function saveBill(){
+  if(!bill.items.length){ toast('Bill is empty'); return false; }
+  if(!bill.date) bill.date = new Date().toISOString();
+  const copy = JSON.parse(JSON.stringify(bill));
+  const idx = bills.findIndex(b=>b.invoice===bill.invoice);
+  if(idx>=0) bills[idx]=copy; else bills.unshift(copy);
+  save(K.bills, bills);
+  if(bill.invoice >= settings.next){ settings.next = bill.invoice+1; save(K.settings, settings); }
+  return true;
+}
+$('saveBtn').onclick = ()=>{ if(saveBill()) toast('Bill saved'); };
+$('printBtn').onclick = ()=>{ if(saveBill()) printBill(bill); };
+$('newBtn').onclick = ()=>{
+  if(bill.items.length && !bills.some(b=>b.invoice===bill.invoice) && !confirm('Current bill is not saved. Start a new bill anyway?')) return;
+  bill = newBill(); syncForm(); $('q').focus();
+};
+
+function printBill(b){
+  const sub = b.items.reduce((s,i)=>s+i.qty*i.price,0), grand=Math.max(0,sub-b.disc), due=grand-b.paid;
+  const d = new Date(b.date||Date.now());
+  const ds = d.toLocaleDateString('en-GB')+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  $('print').innerHTML = `
+    <div class="top">
+      <div><h1>${esc(settings.name)}</h1><div>${esc(settings.addr)}</div><div>Mobile: ${esc(settings.phone)}</div></div>
+      <div style="text-align:right"><div><b>Invoice No:</b> ${b.invoice}</div><div><b>Date:</b> ${ds}</div>
+      <div><b>Customer:</b> ${esc(b.cust||'Walk-in customer')}</div>
+      ${b.phone?`<div><b>Phone:</b> ${esc(b.phone)}</div>`:''}${b.addr?`<div><b>Address:</b> ${esc(b.addr)}</div>`:''}</div>
+    </div>
+    <h2>BILL / INVOICE</h2>
+    <table><thead><tr><th style="width:36px">SN</th><th>Description</th><th class="r">Quantity</th><th class="r">Unit price</th><th class="r">Subtotal</th></tr></thead><tbody>
+    ${b.items.map((it,i)=>`<tr><td>${i+1}</td><td>${esc(it.name)}</td><td class="r">${it.qty}</td><td class="r">${money(it.price)}</td><td class="r">${money(it.qty*it.price)}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="tot">
+      ${b.disc?`<div><span>Total</span><span>${money(sub)}</span></div><div><span>Discount</span><span>- ${money(b.disc)}</span></div>`:''}
+      <div class="g"><span>Total Amount (BDT)</span><span>${money(grand)}</span></div>
+      <div><span>Paid (BDT)</span><span>${money(b.paid)}</span></div>
+      <div class="g"><span>Due (BDT)</span><span>${money(due)}</span></div>
+    </div>
+    <div style="margin-top:8px"><b>In words:</b> ${esc(words(grand))} taka only</div>
+    <div class="foot">${esc(settings.foot).replace(/\n/g,'<br>')} &nbsp;|&nbsp; ${esc(settings.name)} &nbsp;|&nbsp; ${esc(settings.phone)}</div>`;
+  setTimeout(()=>window.print(), 50);
+}
+
+function openHistory(){ openModal('mHistory'); renderHistory(); }
+$('hSearch').addEventListener('input', renderHistory);
+function renderHistory(){
+  const t=$('hSearch').value.trim().toLowerCase();
+  const list = bills.filter(b=>!t || (b.invoice+' '+b.cust+' '+b.phone).toLowerCase().includes(t));
+  $('hlist').innerHTML = list.length ? list.map(b=>{
+    const g=Math.max(0,b.items.reduce((s,i)=>s+i.qty*i.price,0)-b.disc), due=g-b.paid;
+    return `<div class="it"><div class="n"><b>#${b.invoice}</b> &mdash; ${esc(b.cust||'Walk-in')}
+      <small>${new Date(b.date).toLocaleString('en-GB')} &middot; ${b.items.length} items &middot; Total ${money(g)} &middot; Due ${money(due)}</small></div>
+      <button data-o="${b.invoice}">Open</button><button data-p="${b.invoice}">Print</button><button class="danger" data-d="${b.invoice}">Delete</button></div>`;
+  }).join('') : '<div class="empty">No saved bills.</div>';
+  const find = n => bills.find(b=>b.invoice===+n);
+  $('hlist').querySelectorAll('[data-o]').forEach(x=>x.onclick=()=>{ bill=JSON.parse(JSON.stringify(find(x.dataset.o))); syncForm(); closeModal('mHistory'); });
+  $('hlist').querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>printBill(find(x.dataset.p)));
+  $('hlist').querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{ if(confirm('Delete bill #'+x.dataset.d+'?')){ bills=bills.filter(b=>b.invoice!==+x.dataset.d); save(K.bills,bills); renderHistory(); }});
+}
+
+/* ================= product manager ================= */
+$('pSearch').addEventListener('input', renderPlist);
+function renderPlist(){
+  const t=$('pSearch').value.trim().toLowerCase();
+  const list = products.filter(p=>!t || (p.name+' '+p.variants.map(v=>v.size).join(' ')).toLowerCase().includes(t));
+  $('plist').innerHTML = list.length ? list.map(p=>`<div class="it"><div class="n"><b>${esc(p.name)}</b>
+     <small>${p.variants.map(v=>esc(v.size)+' = '+v.price).join(' &middot; ')}</small></div>
+     <button data-e="${p.id}">Edit</button><button class="danger" data-d="${p.id}">Delete</button></div>`).join('') : '<div class="empty">No products.</div>';
+  $('plist').querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>editProduct(b.dataset.e));
+  $('plist').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{
+    const p=products.find(x=>x.id===b.dataset.d);
+    if(confirm('Delete "'+p.name+'"?')){ products=products.filter(x=>x.id!==p.id); save(K.products,products); renderPlist(); }
+  });
+}
+let editingId = null;
+function editProduct(id){
+  editingId = id;
+  const p = id ? products.find(x=>x.id===id) : null;
+  $('editTitle').textContent = p ? 'Edit product' : 'New product';
+  $('eName').value = p ? p.name : '';
+  $('eVars').value = p ? p.variants.map(v=>v.size+', '+v.price).join('\n') : '';
+  openModal('mEdit'); $('eName').focus();
+}
+$('eSave').onclick = ()=>{
+  const name=$('eName').value.trim(); if(!name){ toast('Enter product name'); return; }
+  const variants = $('eVars').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+    const i=l.lastIndexOf(','); 
+    if(i<0) return {size:'Standard', price:num(l)};
+    return {size:l.slice(0,i).trim()||'Standard', price:num(l.slice(i+1))};
+  });
+  if(!variants.length){ toast('Add at least one size/price line'); return; }
+  if(editingId){ const p=products.find(x=>x.id===editingId); p.name=name; p.variants=variants; }
+  else products.push({id:uid(), name, variants});
+  products.sort((a,b)=>a.name.localeCompare(b.name));
+  save(K.products, products); closeModal('mEdit'); renderPlist(); toast('Product saved');
+};
+function exportData(){
+  const blob = new Blob([JSON.stringify({products, settings, bills}, null, 2)], {type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='billing-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+$('importFile').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const d=JSON.parse(r.result);
+    if(!Array.isArray(d.products)) throw 0;
+    if(!confirm('This replaces current products'+(d.bills?', settings and saved bills':'')+'. Continue?')) return;
+    products=d.products.map(p=>({id:p.id||uid(), ...p})); save(K.products,products);
+    if(d.settings){ settings={...DEF_SETTINGS,...d.settings}; save(K.settings,settings); }
+    if(Array.isArray(d.bills)){ bills=d.bills; save(K.bills,bills); }
+    bill=newBill(); syncForm(); renderPlist(); applySettings(); toast('Backup imported');
+  }catch(err){ toast('Invalid backup file'); } };
+  r.readAsText(f); e.target.value='';
+});
+function resetDemo(){
+  if(!confirm('Replace all products with the demo list?')) return;
+  products = DEMO_PRODUCTS.map(p=>({id:uid(), ...p})); save(K.products,products); renderPlist();
+}
+
+/* ================= settings ================= */
+function applySettings(){ $('hdrName').textContent = settings.name; document.title = settings.name+' - Billing'; if(!bill.items.length && !bills.some(b=>b.invoice===bill.invoice)) bill.invoice = settings.next; render(); }
+function fillSettings(){ $('sName').value=settings.name; $('sTag').value=settings.tag; $('sAddr').value=settings.addr; $('sPhone').value=settings.phone; $('sFoot').value=settings.foot; $('sNext').value=settings.next; }
+$('sSave').onclick = ()=>{
+  settings = {name:$('sName').value.trim()||'My Shop', tag:$('sTag').value.trim(), addr:$('sAddr').value.trim(), phone:$('sPhone').value.trim(), foot:$('sFoot').value, next:Math.max(1,parseInt($('sNext').value)||1)};
+  save(K.settings, settings); closeModal('mSettings'); applySettings(); toast('Settings saved');
+};
+
+/* ================= init ================= */
+applySettings(); syncForm(); $('q').focus();
+</script>
+</body>
+</html>
